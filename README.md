@@ -26,11 +26,11 @@ uv sync
 ## Usage
 
 ```powershell
-uv run conducta.py                              # record the current summary (if it's new)
-uv run conducta.py ver                          # show Valve's file and how it was parsed
-uv run conducta.py agregar 7800                 # add a value by hand (dated today)
-uv run conducta.py agregar 7500 --fecha 2026-09-01
-uv run conducta.py grafica                      # plot your score over time
+uv run behavior_tracker.py                      # record the current summary (if it's new)
+uv run behavior_tracker.py ver                  # show Valve's file and how it was parsed
+uv run behavior_tracker.py agregar 7800         # add a value by hand (dated today)
+uv run behavior_tracker.py agregar 7500 --fecha 2026-09-01
+uv run behavior_tracker.py grafica              # plot your score over time
 ```
 
 Run it after each new conduct summary (or schedule it with Task Scheduler).
@@ -38,9 +38,9 @@ A summary is recorded only once, keyed by its `seq_num`.
 
 ### Output
 
-- `historial_conducta.csv`: one row per summary, with the score, previous
+- `behavior_history.csv`: one row per summary, with the score, previous
   score, rating, and every raw field from Valve's file
-- `historial_conducta.png`: the chart produced by `grafica`
+- `behavior_history.png`: the chart produced by `grafica`
 
 Both files contain your own data and are git-ignored.
 
@@ -58,9 +58,9 @@ The file is a list of `key: value` pairs, usually all on a single line:
 account_id: 123456789 match_id: 1234567890 seq_num: 8759 ... raw_behavior_score: 7843 old_raw_behavior_score: 7738 ... behavior_rating: k_eBehaviorGood
 ```
 
-[`resumen_conducta.py`](resumen_conducta.py) turns that text into a
+[`conduct_summary.py`](conduct_summary.py) turns that text into a
 `ResumenConducta` object. It doesn't depend on Windows or Steam, so it can be
-tested anywhere. [`conducta.py`](conducta.py) has the Steam lookup, the CSV
+tested anywhere. [`behavior_tracker.py`](behavior_tracker.py) has the Steam lookup, the CSV
 writer and the CLI.
 
 | Field | Meaning |

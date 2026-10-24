@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from resumen_conducta import FormatoInvalidoError, ResumenConducta
+from conduct_summary import FormatoInvalidoError, ResumenConducta
 
 RESOURCES = Path(__file__).parent / "resources"
 SAMPLE = RESOURCES / "latest_conduct_sample.txt"

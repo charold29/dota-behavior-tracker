@@ -1,15 +1,15 @@
 """
-conducta.py - Guarda un historial de tu Behavior Score de Dota 2.
+behavior_tracker.py - Guarda un historial de tu Behavior Score de Dota 2.
 
 Valve no guarda historial: solo deja el ultimo resumen en un archivo local
 (latest_conduct_*.txt). Este script lo lee y anota cada resumen nuevo en un CSV.
 
 Uso:
-  python conducta.py                          registra el resumen actual (si es nuevo)
-  python conducta.py ver                      muestra el archivo de Valve y como se interpreto
-  python conducta.py agregar 7800             agrega un valor a mano (hoy)
-  python conducta.py agregar 7500 --fecha 2026-09-01
-  python conducta.py grafica                  dibuja la evolucion (requiere matplotlib)
+  python behavior_tracker.py                  registra el resumen actual (si es nuevo)
+  python behavior_tracker.py ver              muestra el archivo de Valve y como se interpreto
+  python behavior_tracker.py agregar 7800     agrega un valor a mano (hoy)
+  python behavior_tracker.py agregar 7500 --fecha 2026-09-01
+  python behavior_tracker.py grafica          dibuja la evolucion (requiere matplotlib)
 """
 import argparse
 import csv
@@ -18,11 +18,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from resumen_conducta import FormatoInvalidoError, ResumenConducta
+from conduct_summary import FormatoInvalidoError, ResumenConducta
 
 BASE = Path(__file__).resolve().parent
-CSV_PATH = BASE / "historial_conducta.csv"
-PNG_PATH = BASE / "historial_conducta.png"
+CSV_PATH = BASE / "behavior_history.csv"
+PNG_PATH = BASE / "behavior_history.png"
 CAMPOS = ["fecha_registro", "fecha_archivo", "behavior_score", "behavior_anterior",
           "rating", "origen", "seq_num", "datos"]
 RUTA_CFG = Path("steamapps") / "common" / "dota 2 beta" / "game" / "dota" / "cfg"
