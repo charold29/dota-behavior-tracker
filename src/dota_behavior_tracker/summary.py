@@ -1,12 +1,11 @@
 """
-DTO for the Dota 2 Player Behavior Summary (latest_conduct_*.txt file).
+Domain: the Dota 2 Player Behavior Summary (latest_conduct_*.txt file).
 
-Doesn't depend on Windows or Steam: it only converts text <-> object,
-so it can be tested on any system.
+Doesn't depend on Windows, Steam or the history file: it only turns text into
+an object, so it can be tested on any system.
 """
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field, fields
 from datetime import datetime, timezone
@@ -86,20 +85,11 @@ class ConductSummary:
     def rating_label(self) -> str:
         return RATINGS.get(self.behavior_rating, self.behavior_rating)
 
-    def to_row(self, recorded_at: datetime) -> dict[str, str]:
-        """Row for the history CSV."""
+    def raw_fields(self) -> dict[str, object]:
+        """Every field as Valve wrote it (except 'date'), including unknown ones."""
         data = {f.name: getattr(self, f.name) for f in fields(self) if f.name not in ("date", "extras")}
         data.update(self.extras)
-        return {
-            "recorded_at": recorded_at.isoformat(timespec="seconds"),
-            "summary_date": self.date.isoformat(timespec="seconds"),
-            "behavior_score": str(self.raw_behavior_score),
-            "previous_score": "" if self.old_raw_behavior_score is None else str(self.old_raw_behavior_score),
-            "rating": self.rating_label,
-            "source": "file",
-            "seq_num": str(self.seq_num),
-            "data": json.dumps(data, ensure_ascii=False, default=str),
-        }
+        return data
 
 
 def _to_int(name: str, value: str) -> int:

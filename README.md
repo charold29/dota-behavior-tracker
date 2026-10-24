@@ -24,23 +24,32 @@ uv sync
 ## Usage
 
 ```powershell
-uv run behavior_tracker.py                      # record the current summary (if it's new)
-uv run behavior_tracker.py show                 # show Valve's file and how it was parsed
-uv run behavior_tracker.py add 7800             # add a value by hand (dated today)
-uv run behavior_tracker.py add 7500 --date 2026-09-01
-uv run behavior_tracker.py plot                 # plot your score over time
+uv run dota-behavior                    # record the current summary (if it's new)
+uv run dota-behavior show               # show Valve's file and how it was parsed
+uv run dota-behavior add 7800           # add a value by hand (dated today)
+uv run dota-behavior add 7500 --date 2026-09-01
+uv run dota-behavior plot               # plot your score over time
+uv run dota-behavior plot --no-show     # only save the PNG
 ```
+
+`python -m dota_behavior_tracker` works too.
 
 Run it after each new conduct summary (or schedule it with Task Scheduler).
 A summary is recorded only once, keyed by its `seq_num`.
 
 ### Output
 
+Your data is saved in `%LOCALAPPDATA%\dota-behavior-tracker\`:
+
 - `behavior_history.csv`: one row per summary, with the score, previous
   score, rating, and every raw field from Valve's file
 - `behavior_history.png`: the chart produced by `plot`
 
-Both files contain your own data and are git-ignored.
+To use another folder, pass `--data-dir` before the command:
+
+```powershell
+uv run dota-behavior --data-dir D:\backups\dota add 7800
+```
 
 ## How it works
 
@@ -56,11 +65,6 @@ The file is a list of `key: value` pairs, usually all on a single line:
 account_id: 123456789 match_id: 1234567890 seq_num: 8759 ... raw_behavior_score: 7843 old_raw_behavior_score: 7738 ... behavior_rating: k_eBehaviorGood
 ```
 
-[`conduct_summary.py`](conduct_summary.py) turns that text into a
-`ConductSummary` object. It doesn't depend on Windows or Steam, so it can be
-tested anywhere. [`behavior_tracker.py`](behavior_tracker.py) has the Steam
-lookup, the CSV writer and the CLI.
-
 | Field | Meaning |
 | --- | --- |
 | `raw_behavior_score` | Current behavior score (max 12000) |
@@ -71,6 +75,23 @@ lookup, the CSV writer and the CLI.
 | `date` | When the summary was generated (Unix time) |
 
 Any field Valve adds later is kept in the CSV's `data` column.
+
+## Project structure
+
+```
+src/dota_behavior_tracker/
+├── cli.py        # interface: arguments and output, no logic
+├── tracker.py    # application: record, add, timeline
+├── summary.py    # domain: ConductSummary and its parser
+├── history.py    # infrastructure: the CSV history
+├── steam.py      # infrastructure: finding Steam and the conduct file
+└── plot.py       # infrastructure: the matplotlib chart
+```
+
+Dependencies point inwards: `cli` → `tracker` → `summary`, with `history`,
+`steam` and `plot` as adapters. `summary` doesn't import anything from the
+project, and `tracker` never prints, so both can be tested without Steam or a
+terminal.
 
 ## Tests
 

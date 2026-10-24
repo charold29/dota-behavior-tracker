@@ -1,10 +1,9 @@
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
-from conduct_summary import ConductSummary, InvalidFormatError
+from dota_behavior_tracker.summary import ConductSummary, InvalidFormatError
 
 RESOURCES = Path(__file__).parent / "resources"
 SAMPLE = RESOURCES / "latest_conduct_sample.txt"
@@ -117,20 +116,12 @@ def test_missing_optional_fields_use_defaults():
     assert s.behavior_rating == ""
 
 
-# ------------------------------------------------------- to_row (CSV) ----
-
-def test_to_row_builds_the_csv_row(summary):
-    recorded_at = datetime(2026, 10, 24, 13, 0, tzinfo=timezone.utc)
-    row = summary.to_row(recorded_at=recorded_at)
-
-    assert row["recorded_at"] == "2026-10-24T13:00:00+00:00"
-    assert row["summary_date"] == "2026-05-29T00:19:23+00:00"
-    assert row["behavior_score"] == "7843"
-    assert row["previous_score"] == "7738"
-    assert row["rating"] == "Good"
-    assert row["source"] == "file"
-    assert row["seq_num"] == "8759"
-    assert json.loads(row["data"])["commend_count"] == 8
+def test_raw_fields_include_unknown_fields_but_not_date(sample_text):
+    s = ConductSummary.from_text(sample_text + "new_valve_field: 42\n")
+    raw = s.raw_fields()
+    assert raw["seq_num"] == 8759
+    assert raw["new_valve_field"] == "42"
+    assert "date" not in raw and "extras" not in raw
 
 
 # ------------------------------------------------------------ helpers ----
