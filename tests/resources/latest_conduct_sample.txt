@@ -1,0 +1,17 @@
+account_id: 123456789
+match_id: 1234567890
+seq_num: 8759
+reasons: 1
+matches_in_report: 15
+matches_clean: 14
+matches_reported: 1
+matches_abandoned: 0
+reports_count: 3
+reports_parties: 3
+commend_count: 8
+date: 1780013963
+raw_behavior_score: 7843
+old_raw_behavior_score: 7738
+comms_reports: 0
+comms_parties: 0
+behavior_rating: k_eBehaviorGood

@@ -1,0 +1,14 @@
+[project]
+name = "dota-behavior-tracker"
+description = "Keeps a local history of your Dota 2 Behavior Score"
+readme = "README.md"
+version = "0.1.0"
+requires-python = ">=3.15"
+dependencies = [
+    "matplotlib>=3.11.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
