@@ -17,6 +17,10 @@ RATINGS = {
     "k_eBehaviorBad": "Bad",
 }
 
+# Community-reported, not published by Valve: from this score up you keep ranked,
+# chat, pings, tips and pauses without restrictions.
+HIGH_CONDUCT_SCORE = 8000
+
 # 'key: value' pairs separated by newlines or spaces: Valve's real file comes
 # all on a single line. Values never contain spaces.
 _PAIR = re.compile(r"(?<!\S)([A-Za-z_]\w*)\s*:\s*(\S+)")
@@ -80,6 +84,10 @@ class ConductSummary:
         if self.old_raw_behavior_score is None:
             return None
         return self.raw_behavior_score - self.old_raw_behavior_score
+
+    @property
+    def is_high_conduct(self) -> bool:
+        return self.raw_behavior_score >= HIGH_CONDUCT_SCORE
 
     @property
     def rating_label(self) -> str:

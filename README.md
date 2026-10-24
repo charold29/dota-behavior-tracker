@@ -79,6 +79,18 @@ account_id: 123456789 match_id: 1234567890 seq_num: 8759 ... raw_behavior_score:
 
 Any field Valve adds later is kept in the CSV's `data` column.
 
+### What the score means
+
+Valve doesn't publish the score ranges. According to the community:
+
+| Score | What you get |
+| --- | --- |
+| **8000 – 12000** (high conduct) | Ranked matchmaking, voice and text chat, pings, tips, pauses and post-game drops without restrictions. Matched with other well-behaved players. |
+| **Below 8000** (low conduct) | Ranked can be blocked. Chat, voice, pings and tips may be limited or disabled. You can lose pauses and post-game drops, queue times get longer, and you get matched with other low-conduct players. |
+
+The chart draws a dashed line at 8000 as a reference. The background colors
+come from the actual rating in each of Valve's summaries.
+
 ## Project structure
 
 ```

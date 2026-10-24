@@ -116,6 +116,12 @@ def test_missing_optional_fields_use_defaults():
     assert s.behavior_rating == ""
 
 
+@pytest.mark.parametrize("score, high", [(12000, True), (8000, True), (7999, False), (0, False)])
+def test_is_high_conduct_from_8000(sample_text, score, high):
+    text = sample_text.replace("raw_behavior_score: 7843", f"raw_behavior_score: {score}")
+    assert ConductSummary.from_text(text).is_high_conduct is high
+
+
 def test_raw_fields_include_unknown_fields_but_not_date(sample_text):
     s = ConductSummary.from_text(sample_text + "new_valve_field: 42\n")
     raw = s.raw_fields()

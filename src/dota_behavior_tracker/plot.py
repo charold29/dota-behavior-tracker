@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 from .history import HistoryEntry, Source
-from .summary import RATINGS
+from .summary import HIGH_CONDUCT_SCORE, RATINGS
 
 MAX_SCORE = 12000
 RATING_COLORS = {
@@ -56,6 +56,10 @@ def plot_timeline(entries: list[HistoryEntry], output: Path, show: bool = True) 
 
     for start, stop, rating in rating_spans(entries, end=entries[-1].summary_date + padding):
         ax.axvspan(_local(start), _local(stop), color=RATING_COLORS[rating], alpha=0.12, linewidth=0)
+
+    ax.axhline(HIGH_CONDUCT_SCORE, color=LINE_COLOR, linestyle="--", linewidth=1, alpha=0.7, zorder=1)
+    ax.text(0.01, HIGH_CONDUCT_SCORE, f" High conduct ≥ {HIGH_CONDUCT_SCORE}: ranked, chat, pauses",
+            transform=ax.get_yaxis_transform(), va="bottom", fontsize=8, color=LINE_COLOR)
 
     ax.plot(x, y, color=LINE_COLOR, linewidth=1.8, zorder=2)
     for xi, yi, color, entry in zip(x, y, colors, entries):
