@@ -1,8 +1,8 @@
 """
-DTO del Player Behavior Summary de Dota 2 (archivo latest_conduct_*.txt).
+DTO for the Dota 2 Player Behavior Summary (latest_conduct_*.txt file).
 
-No depende de Windows ni de Steam: solo convierte texto <-> objeto,
-asi se puede testear en cualquier sistema.
+Doesn't depend on Windows or Steam: it only converts text <-> object,
+so it can be tested on any system.
 """
 from __future__ import annotations
 
@@ -13,25 +13,25 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 RATINGS = {
-    "k_eBehaviorGood": "Bueno",
-    "k_eBehaviorWarning": "Advertencia",
-    "k_eBehaviorBad": "Malo",
+    "k_eBehaviorGood": "Good",
+    "k_eBehaviorWarning": "Warning",
+    "k_eBehaviorBad": "Bad",
 }
 
-# Pares 'clave: valor' separados por saltos de linea o por espacios: el archivo
-# real de Valve viene todo en una sola linea. Los valores nunca llevan espacios.
-_PAR = re.compile(r"(?<!\S)([A-Za-z_]\w*)\s*:\s*(\S+)")
+# 'key: value' pairs separated by newlines or spaces: Valve's real file comes
+# all on a single line. Values never contain spaces.
+_PAIR = re.compile(r"(?<!\S)([A-Za-z_]\w*)\s*:\s*(\S+)")
 
 
-class FormatoInvalidoError(ValueError):
-    """El texto no tiene el formato esperado o le falta un campo obligatorio."""
+class InvalidFormatError(ValueError):
+    """The text doesn't have the expected format or is missing a required field."""
 
 
 @dataclass(frozen=True)
-class ResumenConducta:
+class ConductSummary:
     seq_num: int
     raw_behavior_score: int
-    fecha: datetime                      # campo 'date' (epoch) convertido a UTC
+    date: datetime                       # 'date' field (epoch) converted to UTC
     account_id: int | None = None
     match_id: int | None = None
     old_raw_behavior_score: int | None = None
@@ -46,64 +46,64 @@ class ResumenConducta:
     commend_count: int = 0
     comms_reports: int = 0
     comms_parties: int = 0
-    extras: dict[str, str] = field(default_factory=dict, compare=False)  # campos nuevos que Valve agregue
+    extras: dict[str, str] = field(default_factory=dict, compare=False)  # new fields Valve may add
 
-    # ------------------------------------------------------------ parseo --
-
-    @classmethod
-    def desde_texto(cls, texto: str) -> "ResumenConducta":
-        crudo = dict(_PAR.findall(texto))
-        if not crudo:
-            raise FormatoInvalidoError("El texto no tiene lineas 'clave: valor'.")
-
-        for obligatorio in ("seq_num", "raw_behavior_score", "date"):
-            if obligatorio not in crudo:
-                raise FormatoInvalidoError(f"Falta el campo obligatorio '{obligatorio}'.")
-
-        conocidos = {f.name for f in fields(cls)} - {"fecha", "extras"}
-        valores: dict = {}
-        for nombre in conocidos:
-            if nombre in crudo:
-                valores[nombre] = crudo[nombre] if nombre == "behavior_rating" else _entero(nombre, crudo[nombre])
-
-        valores["fecha"] = datetime.fromtimestamp(_entero("date", crudo["date"]), tz=timezone.utc)
-        valores["extras"] = {k: v for k, v in crudo.items() if k not in conocidos and k != "date"}
-        return cls(**valores)
+    # ----------------------------------------------------------- parsing --
 
     @classmethod
-    def desde_archivo(cls, ruta: Path | str) -> "ResumenConducta":
-        return cls.desde_texto(Path(ruta).read_text(encoding="utf-8", errors="ignore"))
+    def from_text(cls, text: str) -> "ConductSummary":
+        raw = dict(_PAIR.findall(text))
+        if not raw:
+            raise InvalidFormatError("The text has no 'key: value' pairs.")
 
-    # --------------------------------------------------------- derivados --
+        for required in ("seq_num", "raw_behavior_score", "date"):
+            if required not in raw:
+                raise InvalidFormatError(f"Missing required field '{required}'.")
+
+        known = {f.name for f in fields(cls)} - {"date", "extras"}
+        values: dict = {}
+        for name in known:
+            if name in raw:
+                values[name] = raw[name] if name == "behavior_rating" else _to_int(name, raw[name])
+
+        values["date"] = datetime.fromtimestamp(_to_int("date", raw["date"]), tz=timezone.utc)
+        values["extras"] = {k: v for k, v in raw.items() if k not in known and k != "date"}
+        return cls(**values)
+
+    @classmethod
+    def from_file(cls, path: Path | str) -> "ConductSummary":
+        return cls.from_text(Path(path).read_text(encoding="utf-8", errors="ignore"))
+
+    # ----------------------------------------------------------- derived --
 
     @property
-    def cambio(self) -> int | None:
+    def change(self) -> int | None:
         if self.old_raw_behavior_score is None:
             return None
         return self.raw_behavior_score - self.old_raw_behavior_score
 
     @property
-    def rating_legible(self) -> str:
+    def rating_label(self) -> str:
         return RATINGS.get(self.behavior_rating, self.behavior_rating)
 
-    def a_fila(self, fecha_registro: datetime) -> dict[str, str]:
-        """Fila para el CSV de historial."""
-        datos = {f.name: getattr(self, f.name) for f in fields(self) if f.name not in ("fecha", "extras")}
-        datos.update(self.extras)
+    def to_row(self, recorded_at: datetime) -> dict[str, str]:
+        """Row for the history CSV."""
+        data = {f.name: getattr(self, f.name) for f in fields(self) if f.name not in ("date", "extras")}
+        data.update(self.extras)
         return {
-            "fecha_registro": fecha_registro.isoformat(timespec="seconds"),
-            "fecha_archivo": self.fecha.isoformat(timespec="seconds"),
+            "recorded_at": recorded_at.isoformat(timespec="seconds"),
+            "summary_date": self.date.isoformat(timespec="seconds"),
             "behavior_score": str(self.raw_behavior_score),
-            "behavior_anterior": "" if self.old_raw_behavior_score is None else str(self.old_raw_behavior_score),
-            "rating": self.rating_legible,
-            "origen": "archivo",
+            "previous_score": "" if self.old_raw_behavior_score is None else str(self.old_raw_behavior_score),
+            "rating": self.rating_label,
+            "source": "file",
             "seq_num": str(self.seq_num),
-            "datos": json.dumps(datos, ensure_ascii=False, default=str),
+            "data": json.dumps(data, ensure_ascii=False, default=str),
         }
 
 
-def _entero(nombre: str, valor: str) -> int:
+def _to_int(name: str, value: str) -> int:
     try:
-        return int(valor)
+        return int(value)
     except ValueError:
-        raise FormatoInvalidoError(f"El campo '{nombre}' deberia ser numero y vino '{valor}'.") from None
+        raise InvalidFormatError(f"Field '{name}' should be a number but got '{value}'.") from None

@@ -1,15 +1,15 @@
 """
-behavior_tracker.py - Guarda un historial de tu Behavior Score de Dota 2.
+behavior_tracker.py - Keeps a history of your Dota 2 Behavior Score.
 
-Valve no guarda historial: solo deja el ultimo resumen en un archivo local
-(latest_conduct_*.txt). Este script lo lee y anota cada resumen nuevo en un CSV.
+Valve doesn't keep a history: it only leaves the latest summary in a local file
+(latest_conduct_*.txt). This script reads it and appends each new summary to a CSV.
 
-Uso:
-  python behavior_tracker.py                  registra el resumen actual (si es nuevo)
-  python behavior_tracker.py ver              muestra el archivo de Valve y como se interpreto
-  python behavior_tracker.py agregar 7800     agrega un valor a mano (hoy)
-  python behavior_tracker.py agregar 7500 --fecha 2026-09-01
-  python behavior_tracker.py grafica          dibuja la evolucion (requiere matplotlib)
+Usage:
+  python behavior_tracker.py                  record the current summary (if it's new)
+  python behavior_tracker.py show             show Valve's file and how it was parsed
+  python behavior_tracker.py add 7800         add a value by hand (dated today)
+  python behavior_tracker.py add 7500 --date 2026-09-01
+  python behavior_tracker.py plot             plot the score over time (requires matplotlib)
 """
 import argparse
 import csv
@@ -18,174 +18,174 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from conduct_summary import FormatoInvalidoError, ResumenConducta
+from conduct_summary import ConductSummary, InvalidFormatError
 
 BASE = Path(__file__).resolve().parent
 CSV_PATH = BASE / "behavior_history.csv"
 PNG_PATH = BASE / "behavior_history.png"
-CAMPOS = ["fecha_registro", "fecha_archivo", "behavior_score", "behavior_anterior",
-          "rating", "origen", "seq_num", "datos"]
-RUTA_CFG = Path("steamapps") / "common" / "dota 2 beta" / "game" / "dota" / "cfg"
+COLUMNS = ["recorded_at", "summary_date", "behavior_score", "previous_score",
+           "rating", "source", "seq_num", "data"]
+CFG_PATH = Path("steamapps") / "common" / "dota 2 beta" / "game" / "dota" / "cfg"
 
 
 # ---------------------------------------------------------------- Steam ----
 
-def carpetas_steam():
-    """Carpeta principal de Steam + bibliotecas extra (otros discos/carpetas)."""
-    import winreg  # solo existe en Windows; se importa aqui para no romper los tests
+def steam_folders():
+    """Main Steam folder + extra libraries (other drives/folders)."""
+    import winreg  # only exists on Windows; imported here so the tests don't break
 
-    rutas = []
+    paths = []
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as k:
-            rutas.append(Path(winreg.QueryValueEx(k, "SteamPath")[0]))
+            paths.append(Path(winreg.QueryValueEx(k, "SteamPath")[0]))
     except OSError:
         pass
-    rutas += [Path(r"C:\Program Files (x86)\Steam"), Path(r"C:\Program Files\Steam")]
+    paths += [Path(r"C:\Program Files (x86)\Steam"), Path(r"C:\Program Files\Steam")]
 
     extra = []
-    for r in rutas:
-        vdf = r / "steamapps" / "libraryfolders.vdf"
+    for p in paths:
+        vdf = p / "steamapps" / "libraryfolders.vdf"
         if vdf.exists():
-            texto = vdf.read_text(encoding="utf-8", errors="ignore")
-            for m in re.finditer(r'"path"\s+"([^"]+)"', texto):
+            text = vdf.read_text(encoding="utf-8", errors="ignore")
+            for m in re.finditer(r'"path"\s+"([^"]+)"', text):
                 extra.append(Path(m.group(1).replace("\\\\", "\\")))
 
-    vistos, unicas = set(), []
-    for r in rutas + extra:
-        clave = str(r).lower()
-        if clave not in vistos:
-            vistos.add(clave)
-            unicas.append(r)
-    return unicas
+    seen, unique = set(), []
+    for p in paths + extra:
+        key = str(p).lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(p)
+    return unique
 
 
-def buscar_archivo():
-    candidatos = []
-    for steam in carpetas_steam():
-        cfg = steam / RUTA_CFG
+def find_conduct_file():
+    candidates = []
+    for steam in steam_folders():
+        cfg = steam / CFG_PATH
         if cfg.is_dir():
-            candidatos += list(cfg.glob("latest_conduct_*.txt"))
-    if not candidatos:
+            candidates += list(cfg.glob("latest_conduct_*.txt"))
+    if not candidates:
         return None
-    return max(candidatos, key=lambda p: p.stat().st_mtime)
+    return max(candidates, key=lambda p: p.stat().st_mtime)
 
 
 # ---------------------------------------------------------------- CSV ------
 
-def leer_historial():
+def read_history():
     if not CSV_PATH.exists():
         return []
     with CSV_PATH.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
 
-def agregar_fila(fila):
-    nuevo = not CSV_PATH.exists()
+def append_row(row):
+    new = not CSV_PATH.exists()
     with CSV_PATH.open("a", encoding="utf-8-sig", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=CAMPOS)
-        if nuevo:
+        w = csv.DictWriter(f, fieldnames=COLUMNS)
+        if new:
             w.writeheader()
-        w.writerow(fila)
+        w.writerow(row)
 
 
-# ---------------------------------------------------------------- comandos -
+# ---------------------------------------------------------------- commands -
 
-def cmd_registrar(_args):
-    archivo = buscar_archivo()
-    if archivo is None:
-        print("No encontre latest_conduct_*.txt. Abre Dota 2 al menos una vez "
-              "y revisa que el juego este instalado en Steam.")
+def cmd_record(_args):
+    path = find_conduct_file()
+    if path is None:
+        print("Couldn't find latest_conduct_*.txt. Open Dota 2 at least once "
+              "and check that the game is installed through Steam.")
         return 1
 
     try:
-        resumen = ResumenConducta.desde_archivo(archivo)
-    except FormatoInvalidoError as e:
-        print(f"No pude leer el resumen: {e}")
+        summary = ConductSummary.from_file(path)
+    except InvalidFormatError as e:
+        print(f"Couldn't read the summary: {e}")
         return 1
 
-    ya_registrados = {r["seq_num"] for r in leer_historial() if r["origen"] == "archivo"}
-    if str(resumen.seq_num) in ya_registrados:
-        print(f"Sin cambios (resumen #{resumen.seq_num} ya registrado, score {resumen.raw_behavior_score}).")
+    already_recorded = {r["seq_num"] for r in read_history() if r["source"] == "file"}
+    if str(summary.seq_num) in already_recorded:
+        print(f"No changes (summary #{summary.seq_num} already recorded, score {summary.raw_behavior_score}).")
         return 0
 
-    agregar_fila(resumen.a_fila(fecha_registro=datetime.now().astimezone()))
-    cambio = f" ({resumen.cambio:+d} vs anterior)" if resumen.cambio is not None else ""
-    fecha_local = resumen.fecha.astimezone()
-    print(f"Registrado resumen #{resumen.seq_num} del {fecha_local:%d/%m/%Y}: "
-          f"{resumen.raw_behavior_score}{cambio}")
+    append_row(summary.to_row(recorded_at=datetime.now().astimezone()))
+    change = f" ({summary.change:+d} vs previous)" if summary.change is not None else ""
+    local_date = summary.date.astimezone()
+    print(f"Recorded summary #{summary.seq_num} from {local_date:%Y-%m-%d}: "
+          f"{summary.raw_behavior_score}{change}")
     return 0
 
 
-def cmd_ver(_args):
-    archivo = buscar_archivo()
-    if archivo is None:
-        print("No encontre el archivo de conducta.")
+def cmd_show(_args):
+    path = find_conduct_file()
+    if path is None:
+        print("Couldn't find the conduct file.")
         return 1
-    print(f"Archivo: {archivo}\n")
-    print(archivo.read_text(encoding="utf-8", errors="ignore"))
+    print(f"File: {path}\n")
+    print(path.read_text(encoding="utf-8", errors="ignore"))
     try:
-        print("\nInterpretado:", ResumenConducta.desde_archivo(archivo))
-    except FormatoInvalidoError as e:
-        print(f"\nNo pude interpretarlo: {e}")
+        print("\nParsed:", ConductSummary.from_file(path))
+    except InvalidFormatError as e:
+        print(f"\nCouldn't parse it: {e}")
     return 0
 
 
-def cmd_agregar(args):
-    fecha = args.fecha or datetime.now().strftime("%Y-%m-%d")
+def cmd_add(args):
+    date = args.date or datetime.now().strftime("%Y-%m-%d")
     try:
-        fecha_dt = datetime.strptime(fecha, "%Y-%m-%d").astimezone()
+        date_dt = datetime.strptime(date, "%Y-%m-%d").astimezone()
     except ValueError:
-        print("Fecha invalida, usa el formato AAAA-MM-DD.")
+        print("Invalid date, use the YYYY-MM-DD format.")
         return 1
-    agregar_fila({
-        "fecha_registro": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "fecha_archivo": fecha_dt.isoformat(timespec="seconds"),
-        "behavior_score": str(args.valor),
-        "behavior_anterior": "",
+    append_row({
+        "recorded_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "summary_date": date_dt.isoformat(timespec="seconds"),
+        "behavior_score": str(args.score),
+        "previous_score": "",
         "rating": "",
-        "origen": "manual",
+        "source": "manual",
         "seq_num": "",
-        "datos": "",
+        "data": "",
     })
-    print(f"Agregado {args.valor} con fecha {fecha}.")
+    print(f"Added {args.score} dated {date}.")
     return 0
 
 
-def _fecha_local(texto):
-    fecha = datetime.fromisoformat(texto)
-    return fecha.astimezone()  # convierte a hora local (y vuelve "aware" las fechas sin zona)
+def _local_date(text):
+    date = datetime.fromisoformat(text)
+    return date.astimezone()  # converts to local time (and makes naive dates "aware")
 
 
-def cmd_grafica(_args):
+def cmd_plot(_args):
     try:
         import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
     except ImportError:
-        print("Falta matplotlib. Instalalo con: pip install matplotlib")
+        print("matplotlib is missing. Install it with: uv sync")
         return 1
 
-    puntos = []
-    for r in leer_historial():
+    points = []
+    for r in read_history():
         if r["behavior_score"]:
-            fecha = _fecha_local(r["fecha_archivo"] or r["fecha_registro"])
-            puntos.append((fecha.replace(tzinfo=None), float(r["behavior_score"])))
-    if not puntos:
-        print("Todavia no hay valores con behavior score en el historial.")
+            date = _local_date(r["summary_date"] or r["recorded_at"])
+            points.append((date.replace(tzinfo=None), float(r["behavior_score"])))
+    if not points:
+        print("There are no behavior score values in the history yet.")
         return 1
-    puntos.sort()
-    x, y = zip(*puntos)
+    points.sort()
+    x, y = zip(*points)
 
     fig, ax = plt.subplots(figsize=(9, 4.5))
     ax.plot(x, y, marker="o", linewidth=2)
     ax.set_title("Behavior Score - Dota 2")
-    ax.set_ylabel("Puntos")
+    ax.set_ylabel("Points")
     ax.set_ylim(0, 12000)
     ax.grid(alpha=0.3)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m/%y"))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
     fig.autofmt_xdate()
     fig.tight_layout()
     fig.savefig(PNG_PATH, dpi=120)
-    print(f"Grafica guardada en {PNG_PATH}")
+    print(f"Chart saved to {PNG_PATH}")
     plt.show()
     return 0
 
@@ -194,17 +194,17 @@ def main():
     if sys.stdout is not None and hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
-    p = argparse.ArgumentParser(description="Historial de Behavior Score de Dota 2")
-    sub = p.add_subparsers(dest="comando")
-    sub.add_parser("ver")
-    sub.add_parser("grafica")
-    a = sub.add_parser("agregar")
-    a.add_argument("valor", type=int)
-    a.add_argument("--fecha", help="AAAA-MM-DD (por defecto hoy)")
+    p = argparse.ArgumentParser(description="Dota 2 Behavior Score history")
+    sub = p.add_subparsers(dest="command")
+    sub.add_parser("show", help="show Valve's file and how it was parsed")
+    sub.add_parser("plot", help="plot the score over time")
+    a = sub.add_parser("add", help="add a value by hand")
+    a.add_argument("score", type=int)
+    a.add_argument("--date", help="YYYY-MM-DD (defaults to today)")
 
     args = p.parse_args()
-    acciones = {None: cmd_registrar, "ver": cmd_ver, "agregar": cmd_agregar, "grafica": cmd_grafica}
-    return acciones[args.comando](args)
+    actions = {None: cmd_record, "show": cmd_show, "add": cmd_add, "plot": cmd_plot}
+    return actions[args.command](args)
 
 
 if __name__ == "__main__":
