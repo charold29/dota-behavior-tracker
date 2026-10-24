@@ -17,9 +17,15 @@ RATINGS = {
     "k_eBehaviorBad": "Bad",
 }
 
-# Community-reported, not published by Valve: from this score up you keep ranked,
-# chat, pings, tips and pauses without restrictions.
-HIGH_CONDUCT_SCORE = 8000
+# Behavior score needed for each feature, as shown in Dota's Player Behavior
+# Summary (checked in-game, October 2026). Chat, voice and tipping depend on the
+# communication score instead, which the latest_conduct file doesn't include.
+BEHAVIOR_UNLOCKS = {
+    3000: "Ranked",
+    5000: "Pausing",
+    7000: "Post-game drops",
+    10000: "Coaching",  # also needs 10000 communication score
+}
 
 # 'key: value' pairs separated by newlines or spaces: Valve's real file comes
 # all on a single line. Values never contain spaces.
@@ -84,10 +90,6 @@ class ConductSummary:
         if self.old_raw_behavior_score is None:
             return None
         return self.raw_behavior_score - self.old_raw_behavior_score
-
-    @property
-    def is_high_conduct(self) -> bool:
-        return self.raw_behavior_score >= HIGH_CONDUCT_SCORE
 
     @property
     def rating_label(self) -> str:

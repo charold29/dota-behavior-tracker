@@ -81,15 +81,28 @@ Any field Valve adds later is kept in the CSV's `data` column.
 
 ### What the score means
 
-Valve doesn't publish the score ranges. According to the community:
+Dota's Player Behavior Summary shows two scores, each unlocking features at
+its own threshold (checked in-game, October 2026):
 
-| Score | What you get |
+| Behavior score | Unlocks |
 | --- | --- |
-| **8000 – 12000** (high conduct) | Ranked matchmaking, voice and text chat, pings, tips, pauses and post-game drops without restrictions. Matched with other well-behaved players. |
-| **Below 8000** (low conduct) | Ranked can be blocked. Chat, voice, pings and tips may be limited or disabled. You can lose pauses and post-game drops, queue times get longer, and you get matched with other low-conduct players. |
+| 3000 | Ranked matchmaking |
+| 5000 | In-game pausing |
+| 7000 | Post-game drops (treasure chests and sets) |
+| 10000 | Coaching (also needs 10000 communication score) |
 
-The chart draws a dashed line at 8000 as a reference. The background colors
-come from the actual rating in each of Valve's summaries.
+| Communication score | Unlocks |
+| --- | --- |
+| 3000 | Unthrottled messages (below it, pings, alerts and chat wheels share a 30 s cooldown) |
+| 6000 | Text chat |
+| 7000 | In-game tipping |
+| 8000 | Voice chat |
+| 10000 | Coaching (also needs 10000 behavior score), pinging ally abilities |
+
+The chart draws a dashed line at each behavior score threshold. The
+`latest_conduct` file doesn't include the communication score, so it isn't
+tracked. The background colors come from the actual rating in each of Valve's
+summaries.
 
 ## Project structure
 
