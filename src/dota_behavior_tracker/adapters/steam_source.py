@@ -1,5 +1,6 @@
 """
-Infrastructure: finds the Steam libraries and Dota 2's latest_conduct file.
+Adapter: implements the ConductSource port by finding Dota 2's
+latest_conduct file in the Steam libraries.
 """
 from __future__ import annotations
 
@@ -7,8 +8,21 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
+from ..application.ports import ConductFile
+
 CFG_PATH = Path("steamapps") / "common" / "dota 2 beta" / "game" / "dota" / "cfg"
 DEFAULT_STEAM_PATHS = (Path(r"C:\Program Files (x86)\Steam"), Path(r"C:\Program Files\Steam"))
+
+
+class SteamConductSource:
+    def __init__(self, folders: Iterable[Path] | None = None):
+        self.folders = folders  # None: look them up in the registry and the default paths
+
+    def latest(self) -> ConductFile | None:
+        path = find_conduct_file(self.folders)
+        if path is None:
+            return None
+        return ConductFile(location=str(path), text=path.read_text(encoding="utf-8", errors="ignore"))
 
 
 def steam_folders() -> list[Path]:

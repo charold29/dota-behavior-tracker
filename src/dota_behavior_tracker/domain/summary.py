@@ -1,15 +1,14 @@
 """
 Domain: the Dota 2 Player Behavior Summary (latest_conduct_*.txt file).
 
-Doesn't depend on Windows, Steam or the history file: it only turns text into
-an object, so it can be tested on any system.
+Pure logic: it only turns text into an object. Reading the file from disk is
+the job of an adapter (adapters/steam_source.py).
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field, fields
 from datetime import datetime, timezone
-from pathlib import Path
 
 RATINGS = {
     "k_eBehaviorGood": "Good",
@@ -78,10 +77,6 @@ class ConductSummary:
         values["date"] = datetime.fromtimestamp(_to_int("date", raw["date"]), tz=timezone.utc)
         values["extras"] = {k: v for k, v in raw.items() if k not in known and k != "date"}
         return cls(**values)
-
-    @classmethod
-    def from_file(cls, path: Path | str) -> "ConductSummary":
-        return cls.from_text(Path(path).read_text(encoding="utf-8", errors="ignore"))
 
     # ----------------------------------------------------------- derived --
 

@@ -106,20 +106,31 @@ summaries.
 
 ## Project structure
 
+A lightweight hexagonal (ports and adapters) architecture:
+
 ```
 src/dota_behavior_tracker/
-├── cli.py        # interface: arguments and output, no logic
-├── tracker.py    # application: record, add, timeline
-├── summary.py    # domain: ConductSummary and its parser
-├── history.py    # infrastructure: the CSV history
-├── steam.py      # infrastructure: finding Steam and the conduct file
-└── plot.py       # infrastructure: the matplotlib chart
+├── domain/
+│   ├── summary.py          # ConductSummary, its parser, behavior score unlocks
+│   └── history.py          # HistoryEntry, Source
+├── application/
+│   ├── ports.py            # HistoryRepository, ConductSource (Protocols)
+│   └── tracker.py          # use cases: record, add, timeline
+├── adapters/
+│   ├── csv_history.py      # HistoryRepository backed by a CSV file
+│   ├── steam_source.py     # ConductSource that finds the file in Steam
+│   └── chart.py            # the matplotlib chart
+└── cli.py                  # command line + composition root
 ```
 
-Dependencies point inwards: `cli` → `tracker` → `summary`, with `history`,
-`steam` and `plot` as adapters. `summary` doesn't import anything from the
-project, and `tracker` never prints, so both can be tested without Steam or a
-terminal.
+Dependencies point inwards: `adapters` and `cli` → `application` → `domain`.
+
+- **domain** is pure logic and imports nothing outside itself.
+- **application** only knows the ports, never a file, Steam or matplotlib.
+  The tests run the use cases against in-memory fakes.
+- **cli** is the only place that picks the concrete adapters. Storing the
+  history somewhere else (SQLite, JSON...) means writing a new
+  `HistoryRepository` adapter and changing one line there.
 
 ## Tests
 

@@ -1,19 +1,20 @@
 """
 Application: what the app can do, independent of how it's invoked (CLI, a
-scheduled task...). Doesn't print anything; it returns results or raises.
+scheduled task...). Only knows the ports, never a concrete file or library.
+Doesn't print anything; it returns results or raises.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time
-from pathlib import Path
 
-from .history import HistoryEntry, HistoryStore, Source
-from .summary import ConductSummary
+from ..domain.history import HistoryEntry, Source
+from ..domain.summary import ConductSummary
+from .ports import ConductSource, HistoryRepository
 
 
 class ConductFileNotFoundError(FileNotFoundError):
-    """Dota 2's latest_conduct file couldn't be found."""
+    """There is no conduct summary to read."""
 
 
 @dataclass(frozen=True)
@@ -22,21 +23,22 @@ class RecordResult:
     recorded: bool  # False when the summary was already in the history
 
 
-def record_summary(store: HistoryStore, conduct_file: Path | None,
+def record_summary(history: HistoryRepository, source: ConductSource,
                    now: datetime | None = None) -> RecordResult:
-    """Adds the summary in conduct_file to the history, unless it's already there."""
+    """Adds the latest summary to the history, unless it's already there."""
+    conduct_file = source.latest()
     if conduct_file is None:
         raise ConductFileNotFoundError("Couldn't find latest_conduct_*.txt.")
 
-    summary = ConductSummary.from_file(conduct_file)
-    if store.has_seq_num(summary.seq_num):
+    summary = ConductSummary.from_text(conduct_file.text)
+    if _already_recorded(history, summary.seq_num):
         return RecordResult(summary, recorded=False)
 
-    store.append(HistoryEntry.from_summary(summary, recorded_at=now or _now()))
+    history.append(HistoryEntry.from_summary(summary, recorded_at=now or _now()))
     return RecordResult(summary, recorded=True)
 
 
-def add_manual_score(store: HistoryStore, score: int, on: date | None = None,
+def add_manual_score(history: HistoryRepository, score: int, on: date | None = None,
                      now: datetime | None = None) -> HistoryEntry:
     """Adds a score by hand, dated `on` (today by default)."""
     now = now or _now()
@@ -46,13 +48,17 @@ def add_manual_score(store: HistoryStore, score: int, on: date | None = None,
         behavior_score=score,
         source=Source.MANUAL,
     )
-    store.append(entry)
+    history.append(entry)
     return entry
 
 
-def score_timeline(store: HistoryStore) -> list[HistoryEntry]:
+def score_timeline(history: HistoryRepository) -> list[HistoryEntry]:
     """Every history entry, sorted by summary date."""
-    return sorted(store.read(), key=lambda e: e.summary_date)
+    return sorted(history.read(), key=lambda e: e.summary_date)
+
+
+def _already_recorded(history: HistoryRepository, seq_num: int) -> bool:
+    return any(e.source is Source.FILE and e.seq_num == seq_num for e in history.read())
 
 
 def _now() -> datetime:

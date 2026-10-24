@@ -1,6 +1,6 @@
 """
-Interface: the command line. Parses arguments and prints results; the logic
-lives in tracker.py.
+Input adapter and composition root: parses the command line, creates the real
+adapters, passes them to the use cases and prints the results.
 """
 from __future__ import annotations
 
@@ -10,9 +10,11 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import steam, tracker
-from .history import HistoryStore
-from .summary import ConductSummary, InvalidFormatError
+from .adapters.csv_history import CsvHistoryRepository
+from .adapters.steam_source import SteamConductSource
+from .application import tracker
+from .application.ports import ConductSource
+from .domain.summary import ConductSummary, InvalidFormatError
 
 APP_NAME = "dota-behavior-tracker"
 HISTORY_FILE = "behavior_history.csv"
@@ -29,7 +31,7 @@ def default_data_dir() -> Path:
 
 def cmd_record(args) -> int:
     try:
-        result = tracker.record_summary(_store(args), steam.find_conduct_file())
+        result = tracker.record_summary(args.history, args.source)
     except tracker.ConductFileNotFoundError:
         print("Couldn't find latest_conduct_*.txt. Open Dota 2 at least once "
               "and check that the game is installed through Steam.")
@@ -49,36 +51,36 @@ def cmd_record(args) -> int:
     return 0
 
 
-def cmd_show(_args) -> int:
-    path = steam.find_conduct_file()
-    if path is None:
+def cmd_show(args) -> int:
+    conduct_file = args.source.latest()
+    if conduct_file is None:
         print("Couldn't find the conduct file.")
         return 1
-    print(f"File: {path}\n")
-    print(path.read_text(encoding="utf-8", errors="ignore"))
+    print(f"File: {conduct_file.location}\n")
+    print(conduct_file.text)
     try:
-        print("\nParsed:", ConductSummary.from_file(path))
+        print("\nParsed:", ConductSummary.from_text(conduct_file.text))
     except InvalidFormatError as e:
         print(f"\nCouldn't parse it: {e}")
     return 0
 
 
 def cmd_add(args) -> int:
-    entry = tracker.add_manual_score(_store(args), args.score, args.date)
+    entry = tracker.add_manual_score(args.history, args.score, args.date)
     print(f"Added {entry.behavior_score} dated {entry.summary_date:%Y-%m-%d}.")
     return 0
 
 
 def cmd_plot(args) -> int:
-    points = tracker.score_timeline(_store(args))
-    if not points:
+    entries = tracker.score_timeline(args.history)
+    if not entries:
         print("There are no behavior score values in the history yet.")
         return 1
 
-    from .plot import plot_timeline  # matplotlib is slow to import: only load it when plotting
+    from .adapters.chart import plot_timeline  # matplotlib is slow to import: only load it when plotting
 
     output = args.data_dir / CHART_FILE
-    plot_timeline(points, output, show=not args.no_show)
+    plot_timeline(entries, output, show=not args.no_show)
     print(f"Chart saved to {output}")
     return 0
 
@@ -106,15 +108,16 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, source: ConductSource | None = None) -> int:
+    """`source` replaces the Steam lookup (tests pass a fake one)."""
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     args = build_parser().parse_args(argv)
+
+    # composition root: the only place that picks the concrete adapters
+    args.history = CsvHistoryRepository(args.data_dir / HISTORY_FILE)
+    args.source = source or SteamConductSource()
     return args.func(args)
-
-
-def _store(args) -> HistoryStore:
-    return HistoryStore(args.data_dir / HISTORY_FILE)
 
 
 def _parse_date(text: str) -> date:

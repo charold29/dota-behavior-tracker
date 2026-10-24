@@ -1,5 +1,5 @@
 """
-Infrastructure: draws the behavior score chart with matplotlib.
+Adapter: draws the behavior score chart with matplotlib.
 
 The background of each period is colored with the rating Valve gave in the
 summary that starts it. Valve doesn't publish the score ranges of each rating,
@@ -14,8 +14,8 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
-from .history import HistoryEntry, Source
-from .summary import BEHAVIOR_UNLOCKS, RATINGS
+from ..domain.history import HistoryEntry, Source
+from ..domain.summary import BEHAVIOR_UNLOCKS, RATINGS
 
 MAX_SCORE = 12000
 RATING_COLORS = {

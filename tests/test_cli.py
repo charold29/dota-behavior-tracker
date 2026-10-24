@@ -1,25 +1,19 @@
 import pytest
 
-from conftest import SAMPLE
-from dota_behavior_tracker import steam
+from conftest import SAMPLE_TEXT, FakeSource
 from dota_behavior_tracker.cli import CHART_FILE, HISTORY_FILE, main
 
 
 @pytest.fixture
 def run(tmp_path, capsys):
-    """Runs the CLI with a temporary data dir and returns (exit code, output)."""
-    def _run(*args):
-        code = main(["--data-dir", str(tmp_path), *args])
+    """Runs the CLI with a temporary data dir and a fake conduct source; returns (exit code, output)."""
+    def _run(*args, source=FakeSource(SAMPLE_TEXT)):
+        code = main(["--data-dir", str(tmp_path), *args], source=source)
         return code, capsys.readouterr().out
     return _run
 
 
-@pytest.fixture
-def conduct_file(monkeypatch):
-    monkeypatch.setattr(steam, "find_conduct_file", lambda: SAMPLE)
-
-
-def test_record_is_the_default_command(run, conduct_file, tmp_path):
+def test_record_is_the_default_command(run, tmp_path):
     code, out = run()
 
     assert code == 0
@@ -28,7 +22,7 @@ def test_record_is_the_default_command(run, conduct_file, tmp_path):
     assert (tmp_path / HISTORY_FILE).exists()
 
 
-def test_record_twice_reports_no_changes(run, conduct_file):
+def test_record_twice_reports_no_changes(run):
     run("record")
     code, out = run("record")
 
@@ -36,12 +30,19 @@ def test_record_twice_reports_no_changes(run, conduct_file):
     assert "No changes (summary #8759 already recorded, score 7843)." in out
 
 
-def test_record_without_conduct_file(run, monkeypatch):
-    monkeypatch.setattr(steam, "find_conduct_file", lambda: None)
-    code, out = run("record")
+def test_record_without_conduct_file(run):
+    code, out = run("record", source=FakeSource(None))
 
     assert code == 1
     assert "Couldn't find latest_conduct_*.txt" in out
+
+
+def test_show_prints_the_file_and_the_parsed_summary(run):
+    code, out = run("show")
+
+    assert code == 0
+    assert "File: fake" in out
+    assert "Parsed: ConductSummary(seq_num=8759" in out
 
 
 def test_add(run):

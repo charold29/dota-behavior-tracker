@@ -1,22 +1,19 @@
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 
-from dota_behavior_tracker.summary import ConductSummary, InvalidFormatError
-
-RESOURCES = Path(__file__).parent / "resources"
-SAMPLE = RESOURCES / "latest_conduct_sample.txt"
+from conftest import SAMPLE_TEXT
+from dota_behavior_tracker.domain.summary import ConductSummary, InvalidFormatError
 
 
 @pytest.fixture
 def sample_text() -> str:
-    return SAMPLE.read_text(encoding="utf-8")
+    return SAMPLE_TEXT
 
 
 @pytest.fixture
 def summary() -> ConductSummary:
-    return ConductSummary.from_file(SAMPLE)
+    return ConductSummary.from_text(SAMPLE_TEXT)
 
 
 # ---------------------------------------------------------- parsing ok ---
@@ -43,10 +40,6 @@ def test_reads_every_field_in_the_file(summary):
 
 def test_converts_epoch_date_to_utc_datetime(summary):
     assert summary.date == datetime(2026, 5, 29, 0, 19, 23, tzinfo=timezone.utc)
-
-
-def test_from_text_and_from_file_match(sample_text, summary):
-    assert ConductSummary.from_text(sample_text) == summary
 
 
 def test_tolerates_whitespace_and_windows_line_endings(sample_text):

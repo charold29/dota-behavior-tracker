@@ -3,8 +3,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from conftest import NOW
-from dota_behavior_tracker.history import HistoryEntry, Source
-from dota_behavior_tracker.plot import last_value_label, plot_timeline, rating_spans
+from dota_behavior_tracker.adapters.chart import last_value_label, plot_timeline, rating_spans
+from dota_behavior_tracker.domain.history import HistoryEntry, Source
 
 START = datetime(2026, 1, 1, tzinfo=timezone.utc)
 

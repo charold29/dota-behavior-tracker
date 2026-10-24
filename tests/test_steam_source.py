@@ -1,7 +1,12 @@
 import os
 from pathlib import Path
 
-from dota_behavior_tracker.steam import CFG_PATH, find_conduct_file, library_paths
+from dota_behavior_tracker.adapters.steam_source import (
+    CFG_PATH,
+    SteamConductSource,
+    find_conduct_file,
+    library_paths,
+)
 
 VDF = r'''
 "libraryfolders"
@@ -33,6 +38,19 @@ def test_find_conduct_file_picks_the_newest_across_libraries(tmp_path):
 
 def test_find_conduct_file_returns_none_when_missing(tmp_path):
     assert find_conduct_file([tmp_path, tmp_path / "does-not-exist"]) is None
+
+
+def test_source_returns_the_newest_file_text_and_location(tmp_path):
+    path = _conduct_file(tmp_path / "lib", "latest_conduct_1.111.txt", mtime=1_000)
+
+    conduct_file = SteamConductSource([tmp_path / "lib"]).latest()
+
+    assert conduct_file.location == str(path)
+    assert conduct_file.text == "seq_num: 1"
+
+
+def test_source_returns_none_without_a_file(tmp_path):
+    assert SteamConductSource([tmp_path]).latest() is None
 
 
 def _conduct_file(library: Path, name: str, mtime: int) -> Path:
