@@ -70,7 +70,7 @@ def test_timeline_is_sorted_by_date_mixing_sources(store):
     record_summary(store, SAMPLE, now=NOW)                      # summary from 2026-05-29
     add_manual_score(store, 7500, on=date(2026, 9, 1), now=NOW)
 
-    assert [score for _, score in score_timeline(store)] == [7843, 7500, 8000]
+    assert [e.behavior_score for e in score_timeline(store)] == [7843, 7500, 8000]
 
 
 def test_timeline_is_empty_without_history(store):

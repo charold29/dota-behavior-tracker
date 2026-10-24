@@ -43,7 +43,10 @@ Your data is saved in `%LOCALAPPDATA%\dota-behavior-tracker\`:
 
 - `behavior_history.csv`: one row per summary, with the score, previous
   score, rating, and every raw field from Valve's file
-- `behavior_history.png`: the chart produced by `plot`
+- `behavior_history.png`: the chart produced by `plot`. Each period is
+  shaded with the rating Valve gave you (Good, Warning, Bad), scores added by
+  hand are drawn as hollow points, and the latest value is labeled with its
+  change
 
 To use another folder, pass `--data-dir` before the command:
 

@@ -50,9 +50,9 @@ def add_manual_score(store: HistoryStore, score: int, on: date | None = None,
     return entry
 
 
-def score_timeline(store: HistoryStore) -> list[tuple[datetime, int]]:
-    """(date, score) pairs sorted by date."""
-    return sorted((e.summary_date, e.behavior_score) for e in store.read())
+def score_timeline(store: HistoryStore) -> list[HistoryEntry]:
+    """Every history entry, sorted by summary date."""
+    return sorted(store.read(), key=lambda e: e.summary_date)
 
 
 def _now() -> datetime:
