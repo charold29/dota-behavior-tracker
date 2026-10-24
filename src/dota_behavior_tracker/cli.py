@@ -14,6 +14,7 @@ from .adapters.csv_history import CsvHistoryRepository
 from .adapters.steam_source import SteamConductSource
 from .application import tracker
 from .application.ports import ConductSource
+from .domain.score import InvalidScoreError, locked_features
 from .domain.summary import ConductSummary, InvalidFormatError
 
 APP_NAME = "dota-behavior-tracker"
@@ -43,11 +44,11 @@ def cmd_record(args) -> int:
     s = result.summary
     if not result.recorded:
         print(f"No changes (summary #{s.seq_num} already recorded, score {s.raw_behavior_score}).")
-        return 0
-
-    change = f" ({s.change:+d} vs previous)" if s.change is not None else ""
-    print(f"Recorded summary #{s.seq_num} from {s.date.astimezone():%Y-%m-%d}: "
-          f"{s.raw_behavior_score}{change}")
+    else:
+        change = f" ({s.change:+d} vs previous)" if s.change is not None else ""
+        print(f"Recorded summary #{s.seq_num} from {s.date.astimezone():%Y-%m-%d}: "
+              f"{s.raw_behavior_score}{change}")
+    print(_locked_message(s.raw_behavior_score))
     return 0
 
 
@@ -66,8 +67,13 @@ def cmd_show(args) -> int:
 
 
 def cmd_add(args) -> int:
-    entry = tracker.add_manual_score(args.history, args.score, args.date)
+    try:
+        entry = tracker.add_manual_score(args.history, args.score, args.date)
+    except InvalidScoreError as e:
+        print(e)
+        return 1
     print(f"Added {entry.behavior_score} dated {entry.summary_date:%Y-%m-%d}.")
+    print(_locked_message(entry.behavior_score))
     return 0
 
 
@@ -118,6 +124,13 @@ def main(argv: list[str] | None = None, source: ConductSource | None = None) -> 
     args.history = CsvHistoryRepository(args.data_dir / HISTORY_FILE)
     args.source = source or SteamConductSource()
     return args.func(args)
+
+
+def _locked_message(score: int) -> str:
+    locked = locked_features(score)
+    if not locked:
+        return "Every behavior score feature is unlocked."
+    return "Locked: " + ", ".join(f"{feature} (needs {needed})" for needed, feature in locked.items()) + "."
 
 
 def _parse_date(text: str) -> date:

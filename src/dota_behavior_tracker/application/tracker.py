@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time
 
 from ..domain.history import HistoryEntry, Source
+from ..domain.score import validate_score
 from ..domain.summary import ConductSummary
 from .ports import ConductSource, HistoryRepository
 
@@ -40,12 +41,12 @@ def record_summary(history: HistoryRepository, source: ConductSource,
 
 def add_manual_score(history: HistoryRepository, score: int, on: date | None = None,
                      now: datetime | None = None) -> HistoryEntry:
-    """Adds a score by hand, dated `on` (today by default)."""
+    """Adds a score by hand, dated `on` (today by default). Raises InvalidScoreError if out of range."""
     now = now or _now()
     entry = HistoryEntry(
         recorded_at=now,
         summary_date=datetime.combine(on or now.date(), time()).astimezone(),
-        behavior_score=score,
+        behavior_score=validate_score(score),
         source=Source.MANUAL,
     )
     history.append(entry)

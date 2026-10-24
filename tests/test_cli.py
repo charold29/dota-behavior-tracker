@@ -19,6 +19,7 @@ def test_record_is_the_default_command(run, tmp_path):
     assert code == 0
     assert "Recorded summary #8759 from 2026-05-2" in out  # 28 or 29 depending on the time zone
     assert "7843 (+105 vs previous)" in out
+    assert "Locked: Coaching (needs 10000)." in out
     assert (tmp_path / HISTORY_FILE).exists()
 
 
@@ -49,7 +50,25 @@ def test_add(run):
     code, out = run("add", "7500", "--date", "2026-09-01")
 
     assert code == 0
-    assert out.strip() == "Added 7500 dated 2026-09-01."
+    assert out.splitlines() == [
+        "Added 7500 dated 2026-09-01.",
+        "Locked: Coaching (needs 10000).",
+    ]
+
+
+def test_add_with_everything_unlocked(run):
+    code, out = run("add", "11000")
+
+    assert code == 0
+    assert "Every behavior score feature is unlocked." in out
+
+
+def test_add_rejects_an_out_of_range_score(run, tmp_path):
+    code, out = run("add", "99999")
+
+    assert code == 1
+    assert "between 0 and 12000, got 99999" in out
+    assert not (tmp_path / HISTORY_FILE).exists()
 
 
 def test_add_rejects_an_invalid_date(run, capsys):

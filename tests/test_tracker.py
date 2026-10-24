@@ -10,6 +10,7 @@ from dota_behavior_tracker.application.tracker import (
     score_timeline,
 )
 from dota_behavior_tracker.domain.history import HistoryEntry, Source
+from dota_behavior_tracker.domain.score import InvalidScoreError
 from dota_behavior_tracker.domain.summary import InvalidFormatError
 
 
@@ -60,6 +61,13 @@ def test_adds_a_manual_score_on_the_given_date(history):
     assert entry.source is Source.MANUAL
     assert entry.behavior_score == 7500
     assert entry.summary_date.date() == date(2026, 9, 1)
+
+
+@pytest.mark.parametrize("score", [-1, 12001])
+def test_an_out_of_range_manual_score_is_not_stored(history, score):
+    with pytest.raises(InvalidScoreError):
+        add_manual_score(history, score, now=NOW)
+    assert history.entries == []
 
 
 def test_manual_score_defaults_to_today(history):

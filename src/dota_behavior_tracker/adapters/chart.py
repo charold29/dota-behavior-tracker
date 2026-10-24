@@ -15,9 +15,9 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 from ..domain.history import HistoryEntry, Source
-from ..domain.summary import BEHAVIOR_UNLOCKS, RATINGS
+from ..domain.score import BEHAVIOR_UNLOCKS, MAX_SCORE, MIN_SCORE
+from ..domain.summary import RATINGS
 
-MAX_SCORE = 12000
 RATING_COLORS = {
     RATINGS["k_eBehaviorGood"]: "#2e9d5b",
     RATINGS["k_eBehaviorWarning"]: "#e0a100",
@@ -74,7 +74,7 @@ def plot_timeline(entries: list[HistoryEntry], output: Path, show: bool = True) 
 
     ax.set_title("Behavior Score - Dota 2")
     ax.set_ylabel("Points")
-    ax.set_ylim(0, MAX_SCORE)
+    ax.set_ylim(MIN_SCORE, MAX_SCORE)
     ax.set_xlim(x[0] - padding, x[-1] + padding)
     ax.grid(alpha=0.3)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))

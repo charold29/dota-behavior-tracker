@@ -16,16 +16,6 @@ RATINGS = {
     "k_eBehaviorBad": "Bad",
 }
 
-# Behavior score needed for each feature, as shown in Dota's Player Behavior
-# Summary (checked in-game, October 2026). Chat, voice and tipping depend on the
-# communication score instead, which the latest_conduct file doesn't include.
-BEHAVIOR_UNLOCKS = {
-    3000: "Ranked",
-    5000: "Pausing",
-    7000: "Post-game drops",
-    10000: "Coaching",  # also needs 10000 communication score
-}
-
 # 'key: value' pairs separated by newlines or spaces: Valve's real file comes
 # all on a single line. Values never contain spaces.
 _PAIR = re.compile(r"(?<!\S)([A-Za-z_]\w*)\s*:\s*(\S+)")

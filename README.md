@@ -35,7 +35,15 @@ uv run dota-behavior plot --no-show     # only save the PNG
 `python -m dota_behavior_tracker` works too.
 
 Run it after each new conduct summary (or schedule it with Task Scheduler).
-A summary is recorded only once, keyed by its `seq_num`.
+A summary is recorded only once, keyed by its `seq_num`. Both `record` and
+`add` tell you which features your score doesn't unlock yet:
+
+```
+Recorded summary #8759 from 2026-05-28: 7843 (+105 vs previous)
+Locked: Coaching (needs 10000).
+```
+
+Scores added by hand must be between 0 and 12000.
 
 ### Output
 
@@ -111,7 +119,8 @@ A lightweight hexagonal (ports and adapters) architecture:
 ```
 src/dota_behavior_tracker/
 ├── domain/
-│   ├── summary.py          # ConductSummary, its parser, behavior score unlocks
+│   ├── summary.py          # ConductSummary and its parser
+│   ├── score.py            # score range, feature unlocks, locked features
 │   └── history.py          # HistoryEntry, Source
 ├── application/
 │   ├── ports.py            # HistoryRepository, ConductSource (Protocols)
