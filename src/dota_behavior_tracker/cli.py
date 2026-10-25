@@ -5,6 +5,7 @@ adapters, passes them to the use cases and prints the results.
 from __future__ import annotations
 
 import argparse
+import io
 import os
 import sys
 from datetime import date
@@ -83,7 +84,8 @@ def cmd_plot(args) -> int:
         print("There are no behavior score values in the history yet.")
         return 1
 
-    from .adapters.chart import plot_timeline  # matplotlib is slow to import: only load it when plotting
+    # matplotlib is slow to import: only load it when plotting
+    from .adapters.chart import plot_timeline
 
     output = args.data_dir / CHART_FILE
     plot_timeline(entries, output, show=not args.no_show)
@@ -116,7 +118,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None, source: ConductSource | None = None) -> int:
     """`source` replaces the Steam lookup (tests pass a fake one)."""
-    if hasattr(sys.stdout, "reconfigure"):
+    if isinstance(sys.stdout, io.TextIOWrapper):
         sys.stdout.reconfigure(encoding="utf-8")
     args = build_parser().parse_args(argv)
 

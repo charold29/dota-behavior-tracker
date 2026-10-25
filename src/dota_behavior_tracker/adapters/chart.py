@@ -55,17 +55,17 @@ def plot_timeline(entries: list[HistoryEntry], output: Path, show: bool = True) 
     fig, ax = plt.subplots(figsize=(10, 5))
 
     for start, stop, rating in rating_spans(entries, end=entries[-1].summary_date + padding):
-        ax.axvspan(_local(start), _local(stop), color=RATING_COLORS[rating], alpha=0.12, linewidth=0)
+        ax.axvspan(_local(start), _local(stop), color=RATING_COLORS[rating], alpha=0.12, linewidth=0)  # pyright: ignore[reportArgumentType]
 
     for score, feature in BEHAVIOR_UNLOCKS.items():
         ax.axhline(score, color=LINE_COLOR, linestyle="--", linewidth=0.9, alpha=0.6, zorder=1)
         ax.text(1.01, score, feature, transform=ax.get_yaxis_transform(),  # right margin, clear of the data
                 va="center", fontsize=8, color=LINE_COLOR, clip_on=False)
 
-    ax.plot(x, y, color=LINE_COLOR, linewidth=1.8, zorder=2)
+    ax.plot(x, y, color=LINE_COLOR, linewidth=1.8, zorder=2)  # pyright: ignore[reportArgumentType]
     for xi, yi, color, entry in zip(x, y, colors, entries):
         manual = entry.source is Source.MANUAL
-        ax.scatter(xi, yi, s=42, zorder=3, linewidths=1.6,
+        ax.scatter(xi, yi, s=42, zorder=3, linewidths=1.6,  # pyright: ignore[reportArgumentType]
                    facecolors="white" if manual else color, edgecolors=color)
 
     ax.annotate(last_value_label(entries), xy=(x[-1], y[-1]), xytext=(0, 14),
@@ -75,7 +75,7 @@ def plot_timeline(entries: list[HistoryEntry], output: Path, show: bool = True) 
     ax.set_title("Behavior Score - Dota 2")
     ax.set_ylabel("Points")
     ax.set_ylim(MIN_SCORE, MAX_SCORE)
-    ax.set_xlim(x[0] - padding, x[-1] + padding)
+    ax.set_xlim(x[0] - padding, x[-1] + padding)  # pyright: ignore[reportArgumentType]
     ax.grid(alpha=0.3)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
     ax.legend(handles=_legend(entries), loc="lower left", fontsize=9, framealpha=0.9)

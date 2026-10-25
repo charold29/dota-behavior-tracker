@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field, fields
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 RATINGS = {
     "k_eBehaviorGood": "Good",
@@ -49,7 +49,7 @@ class ConductSummary:
     # ----------------------------------------------------------- parsing --
 
     @classmethod
-    def from_text(cls, text: str) -> "ConductSummary":
+    def from_text(cls, text: str) -> ConductSummary:
         raw = dict(_PAIR.findall(text))
         if not raw:
             raise InvalidFormatError("The text has no 'key: value' pairs.")
@@ -64,7 +64,7 @@ class ConductSummary:
             if name in raw:
                 values[name] = raw[name] if name == "behavior_rating" else _to_int(name, raw[name])
 
-        values["date"] = datetime.fromtimestamp(_to_int("date", raw["date"]), tz=timezone.utc)
+        values["date"] = datetime.fromtimestamp(_to_int("date", raw["date"]), tz=UTC)
         values["extras"] = {k: v for k, v in raw.items() if k not in known and k != "date"}
         return cls(**values)
 

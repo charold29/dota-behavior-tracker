@@ -30,7 +30,7 @@ class HistoryEntry:
     data: dict[str, object] = field(default_factory=dict)  # raw fields from Valve's file
 
     @classmethod
-    def from_summary(cls, summary: ConductSummary, recorded_at: datetime) -> "HistoryEntry":
+    def from_summary(cls, summary: ConductSummary, recorded_at: datetime) -> HistoryEntry:
         return cls(
             recorded_at=recorded_at,
             summary_date=summary.date,
